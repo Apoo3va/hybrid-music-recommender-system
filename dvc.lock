@@ -16,3 +16,23 @@ stages:
       hash: md5
       md5: 7f42ede18a53db0438e184978befa374
       size: 9560981
+  transform_data:
+    cmd: python content_based_filtering.py
+    deps:
+    - path: content_based_filtering.py
+      hash: md5
+      md5: 9b41991d14d98236463c35649b8fea28
+      size: 2109
+    - path: data/cleaned_data.csv
+      hash: md5
+      md5: 7f42ede18a53db0438e184978befa374
+      size: 9560981
+    outs:
+    - path: data/transformed_data.npz
+      hash: md5
+      md5: f32fa1890a52bed4fe44aaac84bf5815
+      size: 4522794
+    - path: transformer.joblib
+      hash: md5
+      md5: 31b6ff30f9f638d6d1fa44c13724a54a
+      size: 135341
