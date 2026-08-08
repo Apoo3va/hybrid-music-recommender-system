@@ -6,6 +6,8 @@ from category_encoders.count import CountEncoder
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.compose import ColumnTransformer
 
+from data_cleaning import data_for_content_filtering
+
 DATA_PATH = "data/cleaned_data.csv"
 
 frequency_encode_cols = ["year"]
@@ -18,22 +20,6 @@ min_max_scale_cols = [
 ]
 
 
-def data_for_content_filtering(data):
-    """
-    Prepares the data for content-based filtering by dropping unneeded
-    columns, removing duplicates, filling missing tags, and lowercasing
-    the artist column.
-    """
-    return (
-        data
-        .drop_duplicates(subset=["spotify_id", "year", "duration_ms"])
-        .reset_index(drop=True)
-        .drop(columns=["track_id", "name", "spotify_id", "genre"])
-        .fillna({"tags": "no_tags"})
-        .assign(artist=lambda x: x["artist"].str.lower())
-    )
-
-
 def train_transformer(data):
     transformer = ColumnTransformer(transformers=[
         ("frequency_encode", CountEncoder(normalize=True, return_df=True), frequency_encode_cols),
@@ -44,6 +30,7 @@ def train_transformer(data):
     ], remainder="passthrough", n_jobs=-1)
 
     transformer.fit(data)
+    joblib.dump(transformer, "transformer.joblib")
     return transformer
 
 
@@ -55,7 +42,6 @@ def main():
     transformed_data = transformer.transform(filtered_data)
 
     save_npz("data/transformed_data.npz", transformed_data)
-    joblib.dump(transformer, "transformer.joblib")
 
 
 if __name__ == "__main__":

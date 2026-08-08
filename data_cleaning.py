@@ -8,17 +8,27 @@ def clean_data(data):
     Cleans the input DataFrame by performing the following operations:
     1. Drops the 'spotify_preview_url' column.
     2. Removes duplicate rows based on 'spotify_id', 'year', and 'duration_ms'.
-
-    Parameters:
-    data (pd.DataFrame): The input DataFrame containing the data to be cleaned.
-
-    Returns:
-    pd.DataFrame: The cleaned DataFrame.
     """
     return (
         data
         .drop(columns=["spotify_preview_url"])
         .drop_duplicates(subset=["spotify_id", "year", "duration_ms"])
+    )
+
+
+def data_for_content_filtering(data):
+    """
+    Prepares the data for content-based filtering by dropping unneeded
+    columns, removing duplicates, filling missing tags, and lowercasing
+    the artist column.
+    """
+    return (
+        data
+        .drop_duplicates(subset=["spotify_id", "year", "duration_ms"])
+        .reset_index(drop=True)
+        .drop(columns=["track_id", "name", "spotify_id", "genre"])
+        .fillna({"tags": "no_tags"})
+        .assign(artist=lambda x: x["artist"].str.lower())
     )
 
 

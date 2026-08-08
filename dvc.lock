@@ -9,8 +9,8 @@ stages:
       size: 14985870
     - path: data_cleaning.py
       hash: md5
-      md5: 9303433c639e72b33184c12479ac43fe
-      size: 811
+      md5: e8b576ed3cd13970ddb3b238bc424db5
+      size: 1188
     outs:
     - path: data/cleaned_data.csv
       hash: md5
@@ -21,12 +21,16 @@ stages:
     deps:
     - path: content_based_filtering.py
       hash: md5
-      md5: 9b41991d14d98236463c35649b8fea28
-      size: 2109
+      md5: be8dfb13ea39435d8aca518f4e523246
+      size: 1630
     - path: data/cleaned_data.csv
       hash: md5
       md5: 7f42ede18a53db0438e184978befa374
       size: 9560981
+    - path: data_cleaning.py
+      hash: md5
+      md5: e8b576ed3cd13970ddb3b238bc424db5
+      size: 1188
     outs:
     - path: data/transformed_data.npz
       hash: md5
@@ -34,5 +38,5 @@ stages:
       size: 4522794
     - path: transformer.joblib
       hash: md5
-      md5: 31b6ff30f9f638d6d1fa44c13724a54a
+      md5: 5f7ca4f6bdc84196636d26937e9ddd03
       size: 135341
