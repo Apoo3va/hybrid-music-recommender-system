@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import dask.dataframe as dd
 from scipy.sparse import csr_matrix, save_npz
+from sklearn.metrics.pairwise import cosine_similarity
 
 SONGS_DATA_PATH = "data/Music Info.csv"
 USER_HISTORY_PATH = "data/User Listening History.csv"
@@ -53,6 +54,41 @@ def create_interaction_matrix(history_df):
     sparse_matrix = csr_matrix((values, (row_indices, col_indices)), shape=(n_tracks, n_users))
 
     return sparse_matrix, track_ids
+
+
+def recommend(song_name, artist_name, track_ids, songs_data, interaction_matrix, k=5):
+    """
+    Recommends the top k songs most similar to the given song, based on the
+    collaborative filtering (item-based) interaction matrix.
+    """
+    song_row = songs_data.loc[
+        (songs_data["name"] == song_name) & (songs_data["artist"] == artist_name)
+    ]
+    if song_row.empty:
+        print("Song not found in the dataset.")
+        return None
+
+    input_track_id = song_row["track_id"].values.item()
+    ind = np.where(track_ids == input_track_id)[0].item()
+
+    input_array = interaction_matrix[ind]
+    similarity_scores = cosine_similarity(input_array, interaction_matrix)
+
+    recommendation_indices = np.argsort(similarity_scores.ravel())[-k - 1:][::-1]
+    recommendation_track_ids = track_ids[recommendation_indices]
+    top_scores = np.sort(similarity_scores.ravel())[-k - 1:][::-1]
+
+    scores_df = pd.DataFrame({"track_id": recommendation_track_ids, "score": top_scores})
+
+    top_k_songs = (
+        songs_data
+        .loc[songs_data["track_id"].isin(recommendation_track_ids)]
+        .merge(scores_df, on="track_id")
+        .sort_values(by="score", ascending=False)
+        .drop(columns=["track_id", "score"])
+        .reset_index(drop=True)
+    )
+    return top_k_songs
 
 
 def main():
