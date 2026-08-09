@@ -11,6 +11,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from data_cleaning import data_for_content_filtering
 
 DATA_PATH = "data/cleaned_data.csv"
+TRANSFORMED_DATA_SAVE_PATH = "data/transformed_data.npz"
 
 frequency_encode_cols = ["year"]
 ohe_cols = ["artist", "time_signature", "key"]
@@ -34,6 +35,22 @@ def train_transformer(data):
     transformer.fit(data)
     joblib.dump(transformer, "transformer.joblib")
     return transformer
+
+
+def transform_data(data, transformer):
+    """
+    Applies an already-fitted transformer to the given data.
+    Reused by transform_filtered_data.py for the hybrid stage.
+    """
+    return transformer.transform(data)
+
+
+def save_transform_data(transformed_data, save_path):
+    """
+    Saves a transformed (sparse) matrix to disk in .npz format.
+    Reused by transform_filtered_data.py for the hybrid stage.
+    """
+    save_npz(save_path, transformed_data)
 
 
 def recommend(song_name, songs_data, transformed_data, k=10):
@@ -60,9 +77,9 @@ def main():
     filtered_data = data_for_content_filtering(data)
 
     transformer = train_transformer(filtered_data)
-    transformed_data = transformer.transform(filtered_data)
+    transformed_data = transform_data(filtered_data, transformer)
 
-    save_npz("data/transformed_data.npz", transformed_data)
+    save_transform_data(transformed_data, TRANSFORMED_DATA_SAVE_PATH)
 
 
 if __name__ == "__main__":
