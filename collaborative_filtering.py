@@ -10,10 +10,12 @@ USER_HISTORY_PATH = "data/User Listening History.csv"
 
 def filter_songs_data(songs_df, track_ids_to_keep):
     """
-    Keeps only the songs that appear in the user listening history.
+    Keeps only the songs that appear in the user listening history, and sorts
+    by track_id so this dataset's row order matches the interaction matrix's
+    row order (Dask's categorize sorts categories lexically).
     """
     filtered_songs = songs_df[songs_df["track_id"].isin(track_ids_to_keep)]
-    filtered_songs.reset_index(drop=True, inplace=True)
+    filtered_songs = filtered_songs.sort_values("track_id").reset_index(drop=True)
     return filtered_songs
 
 
@@ -92,7 +94,7 @@ def recommend(song_name, artist_name, track_ids, songs_data, interaction_matrix,
 
 
 def main():
-    songs_df = pd.read_csv(SONGS_DATA_PATH, usecols=["track_id", "name", "artist", "spotify_preview_url"])
+    songs_df = pd.read_csv(SONGS_DATA_PATH)
     history_df = dd.read_csv(USER_HISTORY_PATH)
 
     sparse_matrix, track_ids = create_interaction_matrix(history_df)
