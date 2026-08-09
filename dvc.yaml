@@ -16,7 +16,7 @@ stages:
     outs:
       - data/transformed_data.npz
       - transformer.joblib
-      
+
   interaction_data:
     cmd: python collaborative_filtering.py
     deps:
@@ -27,3 +27,13 @@ stages:
       - data/collab_filtered_data.csv
       - data/track_ids.npy
       - data/interaction_matrix.npz
+      
+  transformed_filtered_data:
+    cmd: python transform_filtered_data.py
+    deps:
+      - data/collab_filtered_data.csv
+      - transform_filtered_data.py
+      - transformer.joblib
+      - data_cleaning.py
+    outs:
+      - data/transformed_hybrid_data.npz
