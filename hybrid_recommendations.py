@@ -1,59 +1,30 @@
 import numpy as np
-import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 
 
 class HybridRecommenderSystem:
     """
     Combines content-based and collaborative filtering similarity scores
-    using a weighted approach to produce hybrid song recommendations.
-
-    Requires the songs_data, transform_matrix (content-based, transformed
-    over the collab-filtered song set) and interaction_matrix (collaborative)
-    to all be row-aligned by track_id order (i.e. songs_data sorted by
-    track_id, matching transform_matrix and interaction_matrix row order).
+    using a dynamic weighted approach to produce hybrid recommendations.
+    weight_content_based is settable per-call (e.g. via a diversity slider);
+    the collaborative weight is always (1 - weight_content_based).
     """
 
-    def __init__(
-        self,
-        songs_data,
-        transform_matrix,
-        interaction_matrix,
-        track_ids,
-        song_name,
-        artist_name,
-        number_of_recommendations=10,
-        weight_content_based=0.3,
-        weight_collaborative_filtering=0.7,
-    ):
-        self.songs_data = songs_data
-        self.transform_matrix = transform_matrix
-        self.interaction_matrix = interaction_matrix
-        self.track_ids = track_ids
-        self.song_name = song_name
-        self.artist_name = artist_name
+    def __init__(self, number_of_recommendations=10, weight_content_based=0.3):
         self.k = number_of_recommendations
         self.weight_content_based = weight_content_based
-        self.weight_collaborative_filtering = weight_collaborative_filtering
+        self.weight_collaborative_filtering = 1 - weight_content_based
 
-    def _get_song_index(self):
-        song_row = self.songs_data.loc[
-            (self.songs_data["name"] == self.song_name)
-            & (self.songs_data["artist"] == self.artist_name)
-        ]
-        if song_row.empty:
-            raise ValueError("Song not found in the dataset.")
-        return song_row.index[0]
+    @staticmethod
+    def calculate_content_based_similarities(song_index, transform_matrix):
+        input_vector = transform_matrix[song_index].reshape(1, -1)
+        return cosine_similarity(input_vector, transform_matrix).ravel()
 
-    def calculate_content_based_similarities(self, song_index):
-        input_vector = self.transform_matrix[song_index].reshape(1, -1)
-        return cosine_similarity(input_vector, self.transform_matrix).ravel()
-
-    def calculate_collaborative_filtering_similarities(self, song_index):
-        track_id = self.songs_data.loc[song_index, "track_id"]
-        ind = np.where(self.track_ids == track_id)[0].item()
-        input_vector = self.interaction_matrix[ind]
-        return cosine_similarity(input_vector, self.interaction_matrix).ravel()
+    @staticmethod
+    def calculate_collaborative_filtering_similarities(track_id, track_ids, interaction_matrix):
+        ind = np.where(track_ids == track_id)[0].item()
+        input_vector = interaction_matrix[ind]
+        return cosine_similarity(input_vector, interaction_matrix).ravel()
 
     @staticmethod
     def normalize_similarities(similarity_scores):
@@ -67,11 +38,20 @@ class HybridRecommenderSystem:
             + self.weight_collaborative_filtering * collaborative_filtering_scores
         )
 
-    def give_recommendations(self):
-        song_index = self._get_song_index()
+    def give_recommendations(self, song_name, artist_name, songs_data, transform_matrix, interaction_matrix, track_ids):
+        song_row = songs_data.loc[
+            (songs_data["name"] == song_name) & (songs_data["artist"] == artist_name)
+        ]
+        if song_row.empty:
+            raise ValueError("Song not found in the dataset.")
 
-        content_based_scores = self.calculate_content_based_similarities(song_index)
-        collaborative_filtering_scores = self.calculate_collaborative_filtering_similarities(song_index)
+        song_index = song_row.index[0]
+        track_id = song_row["track_id"].values.item()
+
+        content_based_scores = self.calculate_content_based_similarities(song_index, transform_matrix)
+        collaborative_filtering_scores = self.calculate_collaborative_filtering_similarities(
+            track_id, track_ids, interaction_matrix
+        )
 
         normalized_content_based = self.normalize_similarities(content_based_scores)
         normalized_collaborative_filtering = self.normalize_similarities(collaborative_filtering_scores)
@@ -81,6 +61,6 @@ class HybridRecommenderSystem:
         )
 
         top_k_indexes = np.argsort(weighted_scores)[-self.k - 1:][::-1]
-        top_k_songs = self.songs_data.iloc[top_k_indexes]
+        top_k_songs = songs_data.iloc[top_k_indexes]
 
         return top_k_songs[["name", "artist", "spotify_preview_url"]].reset_index(drop=True)
