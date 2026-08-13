@@ -14,4 +14,3 @@ def test_streamlit_app_loads():
     status_code = get_status_code(APP_URL)
     assert status_code == 200, "Unable to load the Streamlit app."
     print("Streamlit app loaded successfully.")
-EOF
