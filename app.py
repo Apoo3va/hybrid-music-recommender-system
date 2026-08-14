@@ -72,7 +72,7 @@ def display_recommendations(recommendations, current_song_label):
 
 # ---- Streamlit UI ----
 
-st.title("Spotify Song Recommender")
+st.title("Music Recommender System")
 st.subheader("Enter the name of a song and get similar recommendations")
 
 song_name = st.text_input("Song name")
@@ -117,21 +117,21 @@ if st.button("Get Recommendations"):
     elif filtering_type is None:
         st.warning("Song not found in the database.")
     elif filtering_type == "Content-Based Filtering":
-        actual_name, actual_artist = find_song(content_songs_data, song_name)
+        actual_name, actual_artist = find_song(content_songs_data, song_name) 
         recommendations = content_based_recommender(
             actual_name, content_songs_data, transformed_data, k=k
         )
         display_recommendations(recommendations, actual_name)
 
     elif filtering_type == "Collaborative Filtering":
-        actual_name, actual_artist = find_song(collab_songs_data, song_name, artist_name)
+        actual_name, actual_artist = find_song(collab_songs_data, song_name, artist_name) 
         recommendations = collaborative_recommender(
             actual_name, actual_artist, track_ids, collab_songs_data, interaction_matrix, k=k
         )
         display_recommendations(recommendations, actual_name)
 
     else:  # Hybrid Recommender System
-        actual_name, actual_artist = find_song(collab_songs_data, song_name, artist_name)
+        actual_name, actual_artist = find_song(collab_songs_data, song_name, artist_name) 
         weight_content_based = 1 - (diversity / 10)
         recommender = HybridRecommenderSystem(
             number_of_recommendations=k,
@@ -141,3 +141,4 @@ if st.button("Get Recommendations"):
             actual_name, actual_artist, collab_songs_data, transformed_hybrid_data, interaction_matrix, track_ids
         )
         display_recommendations(recommendations, actual_name)
+        
