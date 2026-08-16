@@ -4,7 +4,6 @@ import streamlit as st
 from scipy.sparse import load_npz
 
 from content_based_filtering import recommend as content_based_recommender
-from collaborative_filtering import recommend as collaborative_recommender
 from hybrid_recommendations import HybridRecommenderSystem
 
 
@@ -80,9 +79,10 @@ artist_name = st.text_input("Artist name")
 
 k = st.selectbox("Number of recommendations", [5, 10, 15, 20], index=1)
 
-# Cold-start handling: check whether the song is in the 30,000-song
-# collaborative subset (has listening history) or only in the full
-# 50,000-song set (new/niche song, no listening history yet).
+# Automatically decide which method to use: hybrid if the song has listening
+# history (in the 30k collab subset), content-based only if it's a newer/
+# niche song (cold start, only in the full 50k set), or an error if it's
+# not in the database at all. No more asking the user to pick a method.
 in_collab_subset = False
 in_content_only = False
 if song_name and artist_name:
@@ -90,49 +90,30 @@ if song_name and artist_name:
 if song_name:
     in_content_only = find_song(content_songs_data, song_name) is not None
 
-filtering_type = None
-if song_name and artist_name:
-    if in_collab_subset:
-        filtering_type = st.selectbox(
-            "Recommendation type",
-            ["Hybrid Recommender System", "Content-Based Filtering", "Collaborative Filtering"],
-            index=0,
-        )
-    elif in_content_only:
-        st.info(
-            "This song has no listening history yet (cold start) — "
-            "only content-based filtering is available for it."
-        )
-        filtering_type = "Content-Based Filtering"
-
-diversity = 5
-if filtering_type == "Hybrid Recommender System":
+weight_content_based = 0.5
+if song_name and artist_name and in_collab_subset:
     diversity = st.slider(
-        "Diversity (1 = more personalized, 10 = more diverse)", 1, 10, 5
+        "Diversity (1 = more personalized, 9 = more diverse)", 1, 9, 5
+    )
+    weight_content_based = 1 - (diversity / 10)
+    weight_collaborative = diversity / 10
+
+    chart_data = pd.DataFrame(
+        {"Weight": [weight_content_based, weight_collaborative]},
+        index=["Personalized (Content-Based)", "Diverse (Collaborative)"],
+    )
+    st.bar_chart(chart_data)
+elif song_name and in_content_only and not in_collab_subset:
+    st.info(
+        "This song has no listening history yet (cold start) — "
+        "showing content-based (personalized) recommendations only."
     )
 
 if st.button("Get Recommendations"):
     if not song_name or not artist_name:
         st.warning("Please enter both a song name and artist name.")
-    elif filtering_type is None:
-        st.warning("Song not found in the database.")
-    elif filtering_type == "Content-Based Filtering":
-        actual_name, actual_artist = find_song(content_songs_data, song_name) 
-        recommendations = content_based_recommender(
-            actual_name, content_songs_data, transformed_data, k=k
-        )
-        display_recommendations(recommendations, actual_name)
-
-    elif filtering_type == "Collaborative Filtering":
-        actual_name, actual_artist = find_song(collab_songs_data, song_name, artist_name) 
-        recommendations = collaborative_recommender(
-            actual_name, actual_artist, track_ids, collab_songs_data, interaction_matrix, k=k
-        )
-        display_recommendations(recommendations, actual_name)
-
-    else:  # Hybrid Recommender System
-        actual_name, actual_artist = find_song(collab_songs_data, song_name, artist_name) 
-        weight_content_based = 1 - (diversity / 10)
+    elif in_collab_subset:
+        actual_name, actual_artist = find_song(collab_songs_data, song_name, artist_name)
         recommender = HybridRecommenderSystem(
             number_of_recommendations=k,
             weight_content_based=weight_content_based,
@@ -141,4 +122,11 @@ if st.button("Get Recommendations"):
             actual_name, actual_artist, collab_songs_data, transformed_hybrid_data, interaction_matrix, track_ids
         )
         display_recommendations(recommendations, actual_name)
-        
+    elif in_content_only:
+        actual_name, actual_artist = find_song(content_songs_data, song_name)
+        recommendations = content_based_recommender(
+            actual_name, content_songs_data, transformed_data, k=k
+        )
+        display_recommendations(recommendations, actual_name)
+    else:
+        st.warning("Song not found in the database. Please try another song.")
