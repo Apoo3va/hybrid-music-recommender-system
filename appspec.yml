@@ -1,0 +1,29 @@
+version: 0.0
+os: linux
+files:
+  - source: /
+    destination: /home/ubuntu/app
+
+hooks:
+  BeforeInstall:
+    - location: deploy/install_dependencies.sh
+      timeout: 300
+      runas: root
+  ApplicationStart:
+    - location: deploy/start_docker.sh
+      timeout: 300
+      runas: root
+
+# NOTE: This file was prepared for AWS CodeDeploy blue-green deployment. It is currently UNUSED in the live deployment.
+
+# Reason: CodeDeploy access was blocked by a pending AWS account payment
+# verification that did not resolve within AWS's own stated timeframe.
+#
+# The live deployment instead uses an EC2 Auto Scaling Group with a
+# self-configuring Launch Template (installs Docker, AWS CLI, swap space,
+# and auto-pulls/runs the latest ECR image on boot via the instance's IAM
+# role) combined with Auto Scaling Group "Instance Refresh" as a functional
+# equivalent to blue-green deployment.
+#
+# This file is kept for reference and in case CodeDeploy access is
+# unblocked in the future.
